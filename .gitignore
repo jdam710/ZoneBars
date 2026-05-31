@@ -1,0 +1,30 @@
+# WoW local runtime data
+WTF/
+Cache/
+Logs/
+Errors/
+Screenshots/
+
+# Packaged addon archives
+*.zip
+*.7z
+*.rar
+
+# Lua tooling
+*.luac
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+Desktop.ini
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Local temp/output folders
+tmp/
+temp/
+dist/
+build/
+release/

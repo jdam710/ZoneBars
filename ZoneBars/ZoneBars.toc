@@ -1,0 +1,8 @@
+## Interface: 120005
+## Title: ZoneBars
+## Notes: Hide selected action bars in chosen dungeon and raid rules.
+## Author: Mazi
+## Version: 1.0.0
+## SavedVariables: ZoneBarsDB
+
+ZoneBars.lua
