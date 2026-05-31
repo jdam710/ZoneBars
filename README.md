@@ -6,6 +6,9 @@ bars based on the dungeon or raid you are currently in.
 It is designed for Retail WoW and targets the current client interface listed in
 `ZoneBars/ZoneBars.toc`.
 
+The entire addon is fully vibe coded, and i made it entirely for myself, so don't count on it being perfect at use at your own risk.
+Feel free to comment bugs, or fork it entirely to make it properly if you want.
+
 ## Features
 
 - Add multiple dungeon or raid rules.
