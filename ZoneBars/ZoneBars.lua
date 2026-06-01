@@ -49,6 +49,12 @@ local DIFFICULTIES = {
     { id = 33, label = "Timewalking Raid" },
 }
 
+local FALLBACK_DIFFICULTY_IDS = {}
+
+for _, difficulty in ipairs(DIFFICULTIES) do
+    FALLBACK_DIFFICULTY_IDS[difficulty.id] = true
+end
+
 local TYPE_LABELS = {
     [RAID_TYPE] = "Raids",
     [DUNGEON_TYPE] = "Dungeons",
@@ -128,7 +134,121 @@ local function GetDifficultyLabel(id)
         end
     end
 
+    if GetDifficultyInfo then
+        local name = GetDifficultyInfo(id)
+
+        if name and name ~= "" then
+            return name
+        end
+    end
+
     return "Unknown (" .. tostring(id) .. ")"
+end
+
+local function AddDifficulty(difficulties, seen, difficultyID, label)
+    if not difficultyID or seen[difficultyID] then
+        return
+    end
+
+    seen[difficultyID] = true
+    difficulties[#difficulties + 1] = {
+        id = difficultyID,
+        label = label or GetDifficultyLabel(difficultyID),
+    }
+end
+
+local function GetDefaultDifficultiesForType(instanceType)
+    local difficulties = {
+        { id = 0, label = "Any" },
+    }
+    local seen = {
+        [0] = true,
+    }
+
+    for _, difficulty in ipairs(DIFFICULTIES) do
+        if difficulty.id ~= 0 then
+            local difficultyType
+
+            if GetDifficultyInfo then
+                local difficultyName
+                difficultyName, difficultyType = GetDifficultyInfo(difficulty.id)
+            end
+
+            if not difficultyType or difficultyType == instanceType then
+                AddDifficulty(difficulties, seen, difficulty.id, difficulty.label)
+            end
+        end
+    end
+
+    return difficulties
+end
+
+local function IsValidEncounterDifficulty(difficultyID)
+    local ok, isValid = pcall(EJ_IsValidInstanceDifficulty, difficultyID)
+
+    return ok and isValid
+end
+
+local function GetEncounterJournalDifficulties(journalInstanceID, instanceType)
+    if not journalInstanceID or not (EJ_SelectInstance and EJ_IsValidInstanceDifficulty) then
+        return nil
+    end
+
+    local previousDifficulty = EJ_GetDifficulty and EJ_GetDifficulty() or nil
+    local previousInstanceID
+
+    if EJ_GetInstanceInfo then
+        local ok, _, _, _, _, _, _, _, selectedInstanceID = pcall(EJ_GetInstanceInfo)
+
+        if ok then
+            previousInstanceID = selectedInstanceID
+        end
+    end
+
+    local ok = pcall(EJ_SelectInstance, journalInstanceID)
+
+    if not ok then
+        return nil
+    end
+
+    local difficulties = {
+        { id = 0, label = "Any" },
+    }
+    local seen = {
+        [0] = true,
+    }
+
+    for _, difficulty in ipairs(DIFFICULTIES) do
+        if difficulty.id ~= 0 and IsValidEncounterDifficulty(difficulty.id) then
+            AddDifficulty(difficulties, seen, difficulty.id, difficulty.label)
+        end
+    end
+
+    if GetDifficultyInfo then
+        for difficultyID = 1, 255 do
+            if not FALLBACK_DIFFICULTY_IDS[difficultyID] and IsValidEncounterDifficulty(difficultyID) then
+                local name, difficultyType = GetDifficultyInfo(difficultyID)
+
+                if name and name ~= "" and (not difficultyType or difficultyType == instanceType) then
+                    AddDifficulty(difficulties, seen, difficultyID, name)
+                end
+            end
+        end
+    end
+
+    if previousInstanceID then
+        pcall(EJ_SelectInstance, previousInstanceID)
+    end
+
+    if previousDifficulty and EJ_SetDifficulty then
+        pcall(EJ_SetDifficulty, previousDifficulty)
+    end
+
+    if #difficulties > 1 then
+        return difficulties
+    end
+
+    return nil
 end
 
 local function GetCurrentExpansionName()
@@ -193,10 +313,18 @@ local function GetDifficultiesLabel(difficulties)
     end
 
     local labels = {}
+    local seen = {}
 
     for _, difficulty in ipairs(DIFFICULTIES) do
         if difficulties and difficulties[difficulty.id] then
             labels[#labels + 1] = difficulty.label
+            seen[difficulty.id] = true
+        end
+    end
+
+    for difficultyID, enabled in pairs(difficulties or {}) do
+        if enabled and not seen[difficultyID] then
+            labels[#labels + 1] = GetDifficultyLabel(difficultyID)
         end
     end
 
@@ -214,11 +342,20 @@ local function GetDifficultyPickerLabel(difficulties)
 
     local count = 0
     local firstLabel
+    local seen = {}
 
     for _, difficulty in ipairs(DIFFICULTIES) do
         if difficulties and difficulties[difficulty.id] then
             count = count + 1
             firstLabel = firstLabel or difficulty.label
+            seen[difficulty.id] = true
+        end
+    end
+
+    for difficultyID, enabled in pairs(difficulties or {}) do
+        if enabled and not seen[difficultyID] then
+            count = count + 1
+            firstLabel = firstLabel or GetDifficultyLabel(difficultyID)
         end
     end
 
@@ -307,6 +444,7 @@ local function EnsureCatalog()
             expansion = expansionName,
             mapID = mapID,
             journalInstanceID = journalInstanceID,
+            difficulties = GetEncounterJournalDifficulties(journalInstanceID, instanceType),
         }
 
         catalog.byExpansion[expansionName][instanceType][#catalog.byExpansion[expansionName][instanceType] + 1] = entry
@@ -400,6 +538,56 @@ local function FindCurrentCatalogEntry(instanceName, instanceMapID)
     return data.byName[Normalize(instanceName)]
 end
 
+local function GetSelectedCatalogEntry()
+    if not editor then
+        return nil
+    end
+
+    return FindCurrentCatalogEntry(editor.instanceName, editor.instanceMapID)
+end
+
+local function GetAvailableDifficulties()
+    local entry = GetSelectedCatalogEntry()
+
+    if entry and entry.difficulties and #entry.difficulties > 0 then
+        return entry.difficulties
+    end
+
+    return GetDefaultDifficultiesForType(editor and editor.instanceType or RAID_TYPE)
+end
+
+local function SyncEditorDifficultiesToInstance()
+    if not editor or not editor.difficulties then
+        return
+    end
+
+    if editor.difficulties[0] then
+        wipe(editor.difficulties)
+        editor.difficulties[0] = true
+        return
+    end
+
+    local available = {}
+
+    for _, difficulty in ipairs(GetAvailableDifficulties()) do
+        available[difficulty.id] = true
+    end
+
+    local hasValidSelection = false
+
+    for difficultyID, enabled in pairs(editor.difficulties) do
+        if enabled and not available[difficultyID] then
+            editor.difficulties[difficultyID] = nil
+        elseif enabled then
+            hasValidSelection = true
+        end
+    end
+
+    if not hasValidSelection then
+        editor.difficulties[0] = true
+    end
+end
+
 local function RememberCurrentInstance()
     if not ZoneBarsDB then
         return
@@ -454,6 +642,8 @@ local function SelectFirstAvailableInstance()
         editor.instanceMapID = nil
         editor.journalInstanceID = nil
     end
+
+    SyncEditorDifficultiesToInstance()
 end
 
 local function SelectFirstPopulatedExpansion()
@@ -482,6 +672,7 @@ local function SelectInstanceFromCatalog(instanceName, instanceType, instanceMap
     editor.instanceName = entry.name or instanceName
     editor.instanceMapID = entry.mapID
     editor.journalInstanceID = entry.journalInstanceID
+    SyncEditorDifficultiesToInstance()
 
     return true
 end
@@ -503,6 +694,7 @@ local function SelectCurrentInstanceIfPossible()
 
     wipe(editor.difficulties)
     editor.difficulties[difficultyID or 0] = true
+    SyncEditorDifficultiesToInstance()
 
     return true
 end
@@ -521,6 +713,7 @@ local function SelectMostRecentRaid()
             editor.instanceName = raid.name
             editor.instanceMapID = raid.mapID
             editor.journalInstanceID = raid.journalInstanceID
+            SyncEditorDifficultiesToInstance()
             return true
         end
     end
@@ -550,6 +743,8 @@ local function ResetEditor()
             SelectFirstPopulatedExpansion()
         end
     end
+
+    SyncEditorDifficultiesToInstance()
 end
 
 local function LoadRuleIntoEditor(rule)
@@ -567,6 +762,7 @@ local function LoadRuleIntoEditor(rule)
 
     CopyDefaults(editor.difficulties, {})
     CopyDefaults(editor.bars, DEFAULT_BARS)
+    SyncEditorDifficultiesToInstance()
 end
 
 local function GetBarFrames(barNumber)
@@ -915,6 +1111,8 @@ RefreshOptions = function()
         return
     end
 
+    SyncEditorDifficultiesToInstance()
+
     UIDropDownMenu_SetSelectedValue(optionsFrame.expansionDropDown, editor.expansion)
     UIDropDownMenu_SetText(optionsFrame.expansionDropDown, editor.expansion or UNKNOWN_EXPANSION)
     UIDropDownMenu_SetSelectedValue(optionsFrame.typeDropDown, editor.instanceType)
@@ -1121,6 +1319,7 @@ local function CreateOptionsPanel()
                 editor.instanceName = selectedInstance.name
                 editor.instanceMapID = selectedInstance.mapID
                 editor.journalInstanceID = selectedInstance.journalInstanceID
+                SyncEditorDifficultiesToInstance()
                 RefreshOptions()
             end
             UIDropDownMenu_AddButton(info, level)
@@ -1129,7 +1328,7 @@ local function CreateOptionsPanel()
     panel.instanceDropDown = instanceDropDown
 
     local _, difficultyDropDown = AddDropDown(panel, "ZoneBarsDifficultyDropDown", "Difficulties", "TOPLEFT", instanceDropDown, "BOTTOMLEFT", 16, -12, 230, function(_, level)
-        for _, difficulty in ipairs(DIFFICULTIES) do
+        for _, difficulty in ipairs(GetAvailableDifficulties()) do
             local difficultyID = difficulty.id
             local info = UIDropDownMenu_CreateInfo()
             info.text = "   " .. difficulty.label
