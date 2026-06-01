@@ -7,20 +7,21 @@ It is designed for Retail WoW and targets the current client interface listed in
 The entire addon is fully vibe coded, and i made it entirely for myself, so don't count on it being perfect and use it at your own risk. Feel free to comment bugs, or fork it entirely to make it properly if you want.
 
 ## Features
-Add multiple dungeon or raid rules.
-Choose Hide or Show behavior per rule.
-Select one or more difficulties from a compact multi-select dropdown.
-Select one or more bars from 1-15, Pet, Vehicle, Stance/Class.
-Edit or delete existing rules.
-Automatically loads dungeons and raids from the in-game Encounter Journal.
-Detects unknown dungeons/raids you enter and saves them under Unknown.
-Filters pseudo Encounter Journal entries that are not real zones.
-Supports Blizzard default action bars, Bartender4, Dominos, and ElvUI bar frame names. Write a comment if you want further support for other addon bars.
-Install
+- Add multiple dungeon or raid rules.
+- Choose Hide or Show behavior per rule.
+- Select one or more difficulties from a compact multi-select dropdown.
+- Select one or more bars from 1-15, Pet, Vehicle, Stance/Class.
+- Edit or delete existing rules.
+- Automatically loads dungeons and raids from the in-game Encounter Journal.
+- Detects unknown dungeons/raids you enter and saves them under Unknown.
+- Filters pseudo Encounter Journal entries that are not real zones.
+- Supports Blizzard default action bars, Bartender4, Dominos, and ElvUI bar frame names. Write a comment if you want further support for other addon bars.
 
-Copy the ZoneBars folder into:
+## Install
 
-World of Warcraft/_retail_/Interface/AddOns/ZoneBars
+Search for "ZoneBars" on Curseforge, or to install manually copy the ZoneBars folder into:
+
+'''World of Warcraft/_retail_/Interface/AddOns/ZoneBars'''
 
 
 
