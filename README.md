@@ -19,7 +19,7 @@ Feel free to comment bugs, or fork it entirely to make it properly if you want.
 - Automatically loads dungeons and raids from the in-game Encounter Journal.
 - Detects unknown dungeons/raids you enter and saves them under `Unknown`.
 - Filters pseudo Encounter Journal entries that are not real zones.
-- Supports Blizzard default action bars, Bartender4, and common ElvUI bar frame names.
+- Supports Blizzard default action bars, Bartender4, Dominos, and common ElvUI bar frame names.
 
 ## Install
 

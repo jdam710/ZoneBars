@@ -8,7 +8,7 @@ local DEFAULT_BARS = {
     [1] = false,
     [2] = false,
     [3] = false,
-    [4] = true,
+    [4] = false,
     [5] = false,
 }
 
@@ -55,11 +55,11 @@ local TYPE_LABELS = {
 }
 
 local BAR_FRAME_NAMES = {
-    [1] = { "MainMenuBar", "BT4Bar1", "ElvUI_Bar1" },
-    [2] = { "MultiBarBottomLeft", "BT4Bar2", "ElvUI_Bar2" },
-    [3] = { "MultiBarBottomRight", "BT4Bar3", "ElvUI_Bar3" },
-    [4] = { "MultiBarRight", "BT4Bar4", "ElvUI_Bar4" },
-    [5] = { "MultiBarLeft", "BT4Bar5", "ElvUI_Bar5" },
+    [1] = { "MainMenuBar", "BT4Bar1", "ElvUI_Bar1", "DominosFrame1" },
+    [2] = { "MultiBarBottomLeft", "BT4Bar2", "ElvUI_Bar2", "DominosFrame2" },
+    [3] = { "MultiBarBottomRight", "BT4Bar3", "ElvUI_Bar3", "DominosFrame3" },
+    [4] = { "MultiBarRight", "BT4Bar4", "ElvUI_Bar4", "DominosFrame4" },
+    [5] = { "MultiBarLeft", "BT4Bar5", "ElvUI_Bar5", "DominosFrame5" },
 }
 
 local frame = CreateFrame("Frame")
@@ -376,8 +376,6 @@ local function EnsureCatalog()
             addInstance(entry.expansion or UNKNOWN_EXPANSION, typeKey, entry.name, mapID, nil)
         end
     end
-
-    ensureExpansion(UNKNOWN_EXPANSION)
 
     for _, expansionName in ipairs(catalog.expansions) do
         table.sort(catalog.byExpansion[expansionName][RAID_TYPE], SortByName)
@@ -730,6 +728,16 @@ local RefreshOptions
 local RefreshRuleList
 local RefreshDifficultyMenu
 
+local function EnsureAddonState()
+    ZoneBarsDB = ZoneBarsDB or {}
+    CopyDefaults(ZoneBarsDB, DEFAULTS)
+
+    if not editor then
+        RebuildCatalog()
+        ResetEditor()
+    end
+end
+
 local function ReadEditorChecks()
     if not optionsFrame then
         return
@@ -1039,9 +1047,12 @@ RefreshDifficultyMenu = function()
 end
 
 local function CreateOptionsPanel()
+    EnsureAddonState()
+
     local panel = CreateFrame("Frame", "ZoneBarsOptionsPanel", UIParent)
     panel.name = "ZoneBars"
     panel:Hide()
+    optionsFrame = panel
 
     local title = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
     title:SetPoint("TOPLEFT", 16, -16)
@@ -1192,17 +1203,27 @@ local function CreateOptionsPanel()
     hint:SetPoint("TOPLEFT", scrollFrame, "BOTTOMLEFT", 0, -10)
     hint:SetWidth(650)
     hint:SetJustifyH("LEFT")
-    hint:SetText("Instances are loaded from the Encounter Journal. Missing places are saved under Unknown after you enter them.")
+    hint:SetText("Instances are loaded from the Encounter Journal. Missing places appear under Unknown after you enter them.")
 
-    if Settings and Settings.RegisterCanvasLayoutCategory then
-        local category = Settings.RegisterCanvasLayoutCategory(panel, panel.name)
-        Settings.RegisterAddOnCategory(category)
-        panel.category = category
-    else
+    local registeredCategory = false
+
+    if Settings and Settings.RegisterCanvasLayoutCategory and Settings.RegisterAddOnCategory then
+        local ok, category = pcall(Settings.RegisterCanvasLayoutCategory, panel, panel.name)
+
+        if ok and category then
+            ok = pcall(Settings.RegisterAddOnCategory, category)
+
+            if ok then
+                panel.category = category
+                registeredCategory = true
+            end
+        end
+    end
+
+    if not registeredCategory and InterfaceOptions_AddCategory then
         InterfaceOptions_AddCategory(panel)
     end
 
-    optionsFrame = panel
     RefreshOptions()
     RefreshRuleList()
 
@@ -1238,6 +1259,8 @@ end
 
 SLASH_ZONEBARS1 = "/zonebars"
 SlashCmdList.ZONEBARS = function()
+    EnsureAddonState()
+
     if not optionsFrame then
         CreateOptionsPanel()
     end
@@ -1248,9 +1271,14 @@ SlashCmdList.ZONEBARS = function()
 
     if Settings and Settings.OpenToCategory and optionsFrame.category then
         Settings.OpenToCategory(optionsFrame.category:GetID())
+    elseif InterfaceOptionsFrame_OpenToCategory then
+        InterfaceOptionsFrame_OpenToCategory(optionsFrame)
+        InterfaceOptionsFrame_OpenToCategory(optionsFrame)
+    elseif SettingsPanel and SettingsPanel.Open then
+        SettingsPanel:Open()
+        optionsFrame:Show()
     else
-        InterfaceOptionsFrame_OpenToCategory(optionsFrame)
-        InterfaceOptionsFrame_OpenToCategory(optionsFrame)
+        optionsFrame:Show()
     end
 end
 
@@ -1263,8 +1291,7 @@ frame:RegisterEvent("PLAYER_REGEN_ENABLED")
 
 frame:SetScript("OnEvent", function(_, event, addonName)
     if event == "ADDON_LOADED" and addonName == ADDON_NAME then
-        ZoneBarsDB = ZoneBarsDB or {}
-        CopyDefaults(ZoneBarsDB, DEFAULTS)
+        EnsureAddonState()
         MigrateOldSettings()
         RemoveDuplicateRules()
         RebuildCatalog()

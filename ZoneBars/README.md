@@ -21,9 +21,10 @@ Options:
 - Current rules: edit or delete each saved dungeon/raid rule.
 
 Supported frame names cover the default Blizzard action bars, Bartender4 bars
-1-5, and common ElvUI action bar frame names.
+1-5, Dominos bars 1-5, and common ElvUI action bar frame names.
 
 When the player enters a dungeon or raid that is missing from the Encounter
-Journal scan, ZoneBars remembers it under the `Unknown` expansion. If the client
-later exposes that instance through the Encounter Journal, it will appear under
-Blizzard's expansion/tier name automatically.
+Journal scan, ZoneBars remembers it under the `Unknown` expansion and shows that
+category only after it has something in it. If the client later exposes that
+instance through the Encounter Journal, it will appear under Blizzard's
+expansion/tier name automatically.
