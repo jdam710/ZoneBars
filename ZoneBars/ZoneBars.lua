@@ -1128,6 +1128,14 @@ RefreshOptions = function()
     end
 
     optionsFrame.saveButton:SetText(editor.editingID and "Save Rule" or "Add Rule")
+
+    if optionsFrame.saveButtonGlow then
+        if editor.editingID then
+            optionsFrame.saveButtonGlow:Show()
+        else
+            optionsFrame.saveButtonGlow:Hide()
+        end
+    end
 end
 
 RefreshRuleList = function()
@@ -1278,7 +1286,7 @@ local function CreateOptionsPanel()
     end)
     panel.expansionDropDown = expansionDropDown
 
-    local _, typeDropDown = AddDropDown(panel, "ZoneBarsTypeDropDown", "Content type", "TOPLEFT", editorTitle, "BOTTOMLEFT", 230, -8, 150, function(_, level)
+    local _, typeDropDown = AddDropDown(panel, "ZoneBarsTypeDropDown", "Content type", "TOPLEFT", editorTitle, "BOTTOMLEFT", 250, -8, 125, function(_, level)
         for _, instanceType in ipairs({ RAID_TYPE, DUNGEON_TYPE }) do
             local selectedType = instanceType
             local info = UIDropDownMenu_CreateInfo()
@@ -1294,7 +1302,7 @@ local function CreateOptionsPanel()
     end)
     panel.typeDropDown = typeDropDown
 
-    local _, modeDropDown = AddDropDown(panel, "ZoneBarsModeDropDown", "Rule mode", "TOPLEFT", typeDropDown, "BOTTOMLEFT", 16, -10, 150, function(_, level)
+    local _, modeDropDown = AddDropDown(panel, "ZoneBarsModeDropDown", "Rule mode", "TOPLEFT", editorTitle, "BOTTOMLEFT", 425, -8, 80, function(_, level)
         for _, mode in ipairs({ HIDE_MODE, SHOW_MODE }) do
             local selectedMode = mode
             local info = UIDropDownMenu_CreateInfo()
@@ -1309,7 +1317,7 @@ local function CreateOptionsPanel()
     end)
     panel.modeDropDown = modeDropDown
 
-    local _, instanceDropDown = AddDropDown(panel, "ZoneBarsInstanceDropDown", "Instance", "TOPLEFT", expansionDropDown, "BOTTOMLEFT", 16, -62, 300, function(_, level)
+    local _, instanceDropDown = AddDropDown(panel, "ZoneBarsInstanceDropDown", "Instance", "TOPLEFT", expansionDropDown, "BOTTOMLEFT", 16, -16, 300, function(_, level)
         for _, instance in ipairs(GetAvailableInstances()) do
             local selectedInstance = instance
             local info = UIDropDownMenu_CreateInfo()
@@ -1327,7 +1335,7 @@ local function CreateOptionsPanel()
     end)
     panel.instanceDropDown = instanceDropDown
 
-    local _, difficultyDropDown = AddDropDown(panel, "ZoneBarsDifficultyDropDown", "Difficulties", "TOPLEFT", instanceDropDown, "BOTTOMLEFT", 16, -12, 230, function(_, level)
+    local _, difficultyDropDown = AddDropDown(panel, "ZoneBarsDifficultyDropDown", "Difficulties", "TOPLEFT", expansionDropDown, "BOTTOMLEFT", 376, -16, 160, function(_, level)
         for _, difficulty in ipairs(GetAvailableDifficulties()) do
             local difficultyID = difficulty.id
             local info = UIDropDownMenu_CreateInfo()
@@ -1358,7 +1366,7 @@ local function CreateOptionsPanel()
     panel.difficultyDropDown = difficultyDropDown
 
     local barsLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    barsLabel:SetPoint("TOPLEFT", difficultyDropDown, "BOTTOMLEFT", 16, -16)
+    barsLabel:SetPoint("TOPLEFT", instanceDropDown, "BOTTOMLEFT", 16, -16)
     barsLabel:SetText("Bar number")
 
     panel.barChecks = {}
@@ -1374,6 +1382,16 @@ local function CreateOptionsPanel()
     panel.saveButton:SetSize(100, 24)
     panel.saveButton:SetPoint("TOPLEFT", panel.barChecks[1], "BOTTOMLEFT", 0, -10)
     panel.saveButton:SetScript("OnClick", UpsertRule)
+
+    panel.saveButtonGlow = CreateFrame("Frame", nil, panel.saveButton, "BackdropTemplate")
+    panel.saveButtonGlow:SetPoint("TOPLEFT", panel.saveButton, "TOPLEFT", -3, 3)
+    panel.saveButtonGlow:SetPoint("BOTTOMRIGHT", panel.saveButton, "BOTTOMRIGHT", 3, -3)
+    panel.saveButtonGlow:SetBackdrop({
+        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+        edgeSize = 12,
+    })
+    panel.saveButtonGlow:SetBackdropBorderColor(1, 0.82, 0, 1)
+    panel.saveButtonGlow:Hide()
 
     panel.newButton = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
     panel.newButton:SetSize(100, 24)
@@ -1397,12 +1415,6 @@ local function CreateOptionsPanel()
     content:SetSize(RULE_ROW_WIDTH, 190)
     scrollFrame:SetScrollChild(content)
     panel.ruleContent = content
-
-    local hint = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-    hint:SetPoint("TOPLEFT", scrollFrame, "BOTTOMLEFT", 0, -10)
-    hint:SetWidth(650)
-    hint:SetJustifyH("LEFT")
-    hint:SetText("Instances are loaded from the Encounter Journal. Missing places appear under Unknown after you enter them.")
 
     local registeredCategory = false
 
