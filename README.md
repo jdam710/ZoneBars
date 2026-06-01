@@ -21,7 +21,7 @@ The entire addon is fully vibe coded, and i made it entirely for myself, so don'
 
 Search for "ZoneBars" on Curseforge, or to install manually copy the ZoneBars folder into:
 
-'''World of Warcraft/_retail_/Interface/AddOns/ZoneBars'''
+´´´World of Warcraft/_retail_/Interface/AddOns/ZoneBars´´´
 
 
 
