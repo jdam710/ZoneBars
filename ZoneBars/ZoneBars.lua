@@ -75,6 +75,7 @@ local optionsFrame
 local catalog
 local editor
 local RULE_ROW_WIDTH = 620
+local RULE_SCROLL_WIDTH = 620
 
 local function CopyDefaults(target, defaults)
     for key, value in pairs(defaults) do
@@ -1409,7 +1410,7 @@ local function CreateOptionsPanel()
 
     local scrollFrame = CreateFrame("ScrollFrame", "ZoneBarsRuleScrollFrame", panel, "UIPanelScrollFrameTemplate")
     scrollFrame:SetPoint("TOPLEFT", listTitle, "BOTTOMLEFT", 0, -8)
-    scrollFrame:SetSize(650, 190)
+    scrollFrame:SetSize(RULE_SCROLL_WIDTH, 190)
 
     local content = CreateFrame("Frame", nil, scrollFrame)
     content:SetSize(RULE_ROW_WIDTH, 190)
