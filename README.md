@@ -21,35 +21,33 @@ The entire addon is fully vibe coded, and i made it entirely for myself, so don'
 
 Search for "ZoneBars" on Curseforge, or to install manually copy the ZoneBars folder into:
 
-´´´World of Warcraft/_retail_/Interface/AddOns/ZoneBars´´´
-
-
+```World of Warcraft/_retail_/Interface/AddOns/ZoneBars```
 
 Then restart WoW or run:
 
-/reload
+```/reload```
 
 
-Usage
+## Usage
 
 Open the options UI in game:
 
-/zonebars
+```/zonebars```
 
 
 
-## To add a rule:
+### To add a rule:
 
 Choose expansion, content type, rule mode, instance, difficulties, and bars.
 Click Add Rule.
 Use Edit or Delete in the current rules list to manage saved rules.
 
-## Rule modes:
+### Rule modes:
 
 Hide: hide selected bars only when the rule matches.
 Show: show selected bars only when the rule matches, hiding them elsewhere.
 
-## Notes
+### Notes
 
 ZoneBars builds its dungeon and raid list dynamically from Blizzard's Encounter Journal APIs. Future instances should appear automatically when Blizzard exposes them through the client.
 
