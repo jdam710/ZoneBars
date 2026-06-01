@@ -2,7 +2,7 @@
 ## Title: ZoneBars
 ## Notes: Hide selected action bars in chosen dungeon and raid rules.
 ## Author: Jdam710
-## Version: 1.0.4
+## Version: 1.0.5
 ## SavedVariables: ZoneBarsDB
 
 ZoneBars.lua

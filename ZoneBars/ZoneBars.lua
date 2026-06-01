@@ -10,6 +10,19 @@ local DEFAULT_BARS = {
     [3] = false,
     [4] = false,
     [5] = false,
+    [6] = false,
+    [7] = false,
+    [8] = false,
+    [9] = false,
+    [10] = false,
+    [11] = false,
+    [12] = false,
+    [13] = false,
+    [14] = false,
+    [15] = false,
+    pet = false,
+    stance = false,
+    vehicle = false,
 }
 
 local HIDE_MODE = "hide"
@@ -61,12 +74,35 @@ local TYPE_LABELS = {
 }
 
 local BAR_FRAME_NAMES = {
-    [1] = { "MainMenuBar", "BT4Bar1", "ElvUI_Bar1", "DominosFrame1" },
+    [1] = { "MainActionBar", "MainMenuBar", "BT4Bar1", "ElvUI_Bar1", "DominosFrame1" },
     [2] = { "MultiBarBottomLeft", "BT4Bar2", "ElvUI_Bar2", "DominosFrame2" },
     [3] = { "MultiBarBottomRight", "BT4Bar3", "ElvUI_Bar3", "DominosFrame3" },
     [4] = { "MultiBarRight", "BT4Bar4", "ElvUI_Bar4", "DominosFrame4" },
     [5] = { "MultiBarLeft", "BT4Bar5", "ElvUI_Bar5", "DominosFrame5" },
+    [6] = { "MultiBar5", "BT4Bar6", "ElvUI_Bar6", "DominosFrame6" },
+    [7] = { "MultiBar6", "BT4Bar7", "ElvUI_Bar7", "DominosFrame7" },
+    [8] = { "MultiBar7", "BT4Bar8", "ElvUI_Bar8", "DominosFrame8" },
+    [9] = { "BT4Bar9", "ElvUI_Bar9", "DominosFrame9" },
+    [10] = { "BT4Bar10", "ElvUI_Bar10", "DominosFrame10" },
+    [11] = { "DominosFrame11" },
+    [12] = { "DominosFrame12" },
+    [13] = { "BT4Bar13", "ElvUI_Bar13", "DominosFrame13" },
+    [14] = { "BT4Bar14", "ElvUI_Bar14", "DominosFrame14" },
+    [15] = { "BT4Bar15" },
+    pet = { "PetActionBar", "PetActionBarFrame", "BT4BarPetBar", "ElvUI_BarPet", "DominosFramepet" },
+    stance = { "StanceBar", "StanceBarFrame", "BT4BarStanceBar", "ElvUI_StanceBar", "DominosFrameclass" },
+    vehicle = { "MainMenuBarVehicleLeaveButton", "VehicleLeaveButtonHolder", "OverrideActionBar", "BT4BarVehicle", "DominosFramepossess" },
 }
+
+local BAR_OPTIONS = {}
+
+for barNumber = 1, 15 do
+    BAR_OPTIONS[#BAR_OPTIONS + 1] = { id = barNumber, label = "Bar " .. barNumber }
+end
+
+BAR_OPTIONS[#BAR_OPTIONS + 1] = { id = "pet", label = "Pet bar" }
+BAR_OPTIONS[#BAR_OPTIONS + 1] = { id = "stance", label = "Stance/Class bar" }
+BAR_OPTIONS[#BAR_OPTIONS + 1] = { id = "vehicle", label = "Vehicle bar" }
 
 local frame = CreateFrame("Frame")
 local hiddenFrames = {}
@@ -369,12 +405,30 @@ local function GetDifficultyPickerLabel(difficulties)
     return count .. " difficulties"
 end
 
+local function GetBarLabel(barID)
+    for _, bar in ipairs(BAR_OPTIONS) do
+        if bar.id == barID then
+            return bar.label
+        end
+    end
+
+    return "Bar " .. tostring(barID)
+end
+
 local function GetBarsLabel(bars)
     local labels = {}
+    local seen = {}
 
-    for barNumber = 1, 5 do
-        if bars and bars[barNumber] then
-            labels[#labels + 1] = tostring(barNumber)
+    for _, bar in ipairs(BAR_OPTIONS) do
+        if bars and bars[bar.id] then
+            labels[#labels + 1] = bar.label
+            seen[bar.id] = true
+        end
+    end
+
+    for barID, enabled in pairs(bars or {}) do
+        if enabled and not seen[barID] then
+            labels[#labels + 1] = GetBarLabel(barID)
         end
     end
 
@@ -382,7 +436,36 @@ local function GetBarsLabel(bars)
         return "No bars"
     end
 
-    return "Bars " .. table.concat(labels, ", ")
+    return table.concat(labels, ", ")
+end
+
+local function GetBarPickerLabel(bars)
+    local count = 0
+    local firstLabel
+    local seen = {}
+
+    for _, bar in ipairs(BAR_OPTIONS) do
+        if bars and bars[bar.id] then
+            count = count + 1
+            firstLabel = firstLabel or bar.label
+            seen[bar.id] = true
+        end
+    end
+
+    for barID, enabled in pairs(bars or {}) do
+        if enabled and not seen[barID] then
+            count = count + 1
+            firstLabel = firstLabel or GetBarLabel(barID)
+        end
+    end
+
+    if count == 0 then
+        return "None"
+    elseif count == 1 then
+        return firstLabel
+    end
+
+    return count .. " Selected"
 end
 
 local function EnsureCatalog()
@@ -924,6 +1007,7 @@ end
 local RefreshOptions
 local RefreshRuleList
 local RefreshDifficultyMenu
+local RefreshBarMenu
 
 local function EnsureAddonState()
     ZoneBarsDB = ZoneBarsDB or {}
@@ -932,16 +1016,6 @@ local function EnsureAddonState()
     if not editor then
         RebuildCatalog()
         ResetEditor()
-    end
-end
-
-local function ReadEditorChecks()
-    if not optionsFrame then
-        return
-    end
-
-    for barNumber = 1, 5 do
-        editor.bars[barNumber] = optionsFrame.barChecks[barNumber]:GetChecked() and true or false
     end
 end
 
@@ -1012,7 +1086,6 @@ local function RemoveDuplicateRules()
 end
 
 local function UpsertRule()
-    ReadEditorChecks()
     RemoveDuplicateRules()
 
     if editor.instanceName == "" then
@@ -1123,10 +1196,7 @@ RefreshOptions = function()
     UIDropDownMenu_SetSelectedValue(optionsFrame.instanceDropDown, editor.instanceMapID or editor.instanceName)
     UIDropDownMenu_SetText(optionsFrame.instanceDropDown, editor.instanceName ~= "" and editor.instanceName or "None")
     UIDropDownMenu_SetText(optionsFrame.difficultyDropDown, GetDifficultyPickerLabel(editor.difficulties))
-
-    for barNumber = 1, 5 do
-        optionsFrame.barChecks[barNumber]:SetChecked(editor.bars[barNumber])
-    end
+    UIDropDownMenu_SetText(optionsFrame.barDropDown, GetBarPickerLabel(editor.bars))
 
     optionsFrame.saveButton:SetText(editor.editingID and "Save Rule" or "Add Rule")
 
@@ -1253,6 +1323,30 @@ RefreshDifficultyMenu = function()
     end
 end
 
+RefreshBarMenu = function()
+    if not optionsFrame then
+        return
+    end
+
+    if UIDropDownMenu_Refresh then
+        UIDropDownMenu_Refresh(optionsFrame.barDropDown, nil, 1)
+    end
+
+    UIDropDownMenu_SetText(optionsFrame.barDropDown, GetBarPickerLabel(editor.bars))
+end
+
+local function ScheduleBarMenuRefresh()
+    if C_Timer and C_Timer.After then
+        C_Timer.After(0.05, function()
+            RefreshOptions()
+            RefreshBarMenu()
+        end)
+    else
+        RefreshOptions()
+        RefreshBarMenu()
+    end
+end
+
 local function CreateOptionsPanel()
     EnsureAddonState()
 
@@ -1366,22 +1460,43 @@ local function CreateOptionsPanel()
     end)
     panel.difficultyDropDown = difficultyDropDown
 
-    local barsLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    barsLabel:SetPoint("TOPLEFT", instanceDropDown, "BOTTOMLEFT", 16, -16)
-    barsLabel:SetText("Bar number")
+    local barsLabel, barDropDown = AddDropDown(panel, "ZoneBarsBarDropDown", "Bars", "TOPLEFT", instanceDropDown, "BOTTOMLEFT", 16, -16, 180, function(_, level)
+        for _, bar in ipairs(BAR_OPTIONS) do
+            local barID = bar.id
+            local info = UIDropDownMenu_CreateInfo()
+            info.text = "   " .. bar.label
+            info.keepShownOnClick = true
+            info.notCheckable = false
+            info.isNotRadio = true
+            info.isNotRadioButton = true
+            info.ignoreAsMenuSelection = true
+            info.checked = function()
+                return editor.bars[barID] and true or false
+            end
+            info.func = function()
+                editor.bars[barID] = not editor.bars[barID] or nil
+                ScheduleBarMenuRefresh()
+            end
+            UIDropDownMenu_AddButton(info, level)
+        end
+    end)
+    panel.barDropDown = barDropDown
 
-    panel.barChecks = {}
-
-    for barNumber = 1, 5 do
-        local check = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
-        check:SetPoint("TOPLEFT", barsLabel, "BOTTOMLEFT", (barNumber - 1) * 58, -6)
-        check.text:SetText(tostring(barNumber))
-        panel.barChecks[barNumber] = check
-    end
+    local barInfo = CreateFrame("Button", nil, panel, "UIPanelInfoButton")
+    barInfo:SetPoint("LEFT", barsLabel, "RIGHT", 6, 0)
+    barInfo:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Bar numbers vary by UI", 1, 1, 1)
+        GameTooltip:AddLine("A numbered bar is matched against default UI frames and supported action bar addons. The same number may not represent the same physical bar in every setup; for example, ElvUI bar 6 is not necessarily the same as default UI bar 6 or Dominos bar 6.", nil, nil, nil, true)
+        GameTooltip:Show()
+    end)
+    barInfo:SetScript("OnLeave", function()
+        GameTooltip:Hide()
+    end)
 
     panel.saveButton = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
     panel.saveButton:SetSize(100, 24)
-    panel.saveButton:SetPoint("TOPLEFT", panel.barChecks[1], "BOTTOMLEFT", 0, -10)
+    panel.saveButton:SetPoint("TOPLEFT", barDropDown, "BOTTOMLEFT", 16, -10)
     panel.saveButton:SetScript("OnClick", UpsertRule)
 
     panel.saveButtonGlow = CreateFrame("Frame", nil, panel.saveButton, "BackdropTemplate")
