@@ -94,6 +94,38 @@ local BAR_FRAME_NAMES = {
     vehicle = { "MainMenuBarVehicleLeaveButton", "VehicleLeaveButtonHolder", "OverrideActionBar", "BT4BarVehicle", "DominosFramepossess" },
 }
 
+local BAR_BUTTON_NAMES = {
+    [1] = {},
+    [2] = {},
+    [3] = {},
+    [4] = {},
+    [5] = {},
+    [6] = {},
+    [7] = {},
+    [8] = {},
+    pet = {},
+    stance = {},
+    vehicle = { "MainMenuBarVehicleLeaveButton" },
+}
+
+local function AddButtonNames(barID, prefix, count)
+    for index = 1, count do
+        BAR_BUTTON_NAMES[barID][#BAR_BUTTON_NAMES[barID] + 1] = prefix .. index
+    end
+end
+
+AddButtonNames(1, "ActionButton", 12)
+AddButtonNames(2, "MultiBarBottomLeftButton", 12)
+AddButtonNames(3, "MultiBarBottomRightButton", 12)
+AddButtonNames(4, "MultiBarRightButton", 12)
+AddButtonNames(5, "MultiBarLeftButton", 12)
+AddButtonNames(6, "MultiBar5Button", 12)
+AddButtonNames(7, "MultiBar6Button", 12)
+AddButtonNames(8, "MultiBar7Button", 12)
+AddButtonNames("pet", "PetActionButton", 10)
+AddButtonNames("stance", "StanceButton", 10)
+AddButtonNames("vehicle", "OverrideActionBarButton", 6)
+
 local BAR_OPTIONS = {}
 
 for barNumber = 1, 15 do
@@ -854,16 +886,34 @@ local function GetBarFrames(barNumber)
     local seen = {}
     local names = BAR_FRAME_NAMES[barNumber]
 
-    if not names then
-        return frames
-    end
-
-    for _, name in ipairs(names) do
-        local barFrame = _G[name]
+    local function AddFrame(barFrame)
         if barFrame and not seen[barFrame] then
             frames[#frames + 1] = barFrame
             seen[barFrame] = true
         end
+    end
+
+    local function AddChildren(parent)
+        if not (parent and parent.GetChildren) then
+            return
+        end
+
+        for _, child in ipairs({ parent:GetChildren() }) do
+            if child and not seen[child] then
+                AddFrame(child)
+                AddChildren(child)
+            end
+        end
+    end
+
+    for _, name in ipairs(names or {}) do
+        local barFrame = _G[name]
+        AddFrame(barFrame)
+        AddChildren(barFrame)
+    end
+
+    for _, name in ipairs(BAR_BUTTON_NAMES[barNumber] or {}) do
+        AddFrame(_G[name])
     end
 
     return frames
@@ -938,6 +988,8 @@ local function RestoreHiddenFrames()
 
             if state.wasShown then
                 barFrame:Show()
+            elseif barFrame.Hide then
+                barFrame:Hide()
             end
         end
     end
@@ -945,25 +997,29 @@ local function RestoreHiddenFrames()
     wipe(hiddenFrames)
 end
 
+local function HideFrame(barFrame)
+    if not hiddenFrames[barFrame] then
+        hiddenFrames[barFrame] = {
+            alpha = barFrame:GetAlpha(),
+            wasShown = barFrame:IsShown(),
+            mouseEnabled = barFrame.IsMouseEnabled and barFrame:IsMouseEnabled() or nil,
+        }
+    end
+
+    barFrame:SetAlpha(0)
+
+    if barFrame.EnableMouse then
+        barFrame:EnableMouse(false)
+    end
+
+    barFrame:Hide()
+end
+
 local function HideRuleFrames(rule)
     for barNumber, enabled in pairs(rule.bars or {}) do
         if enabled then
             for _, barFrame in ipairs(GetBarFrames(barNumber)) do
-                if not hiddenFrames[barFrame] then
-                    hiddenFrames[barFrame] = {
-                        alpha = barFrame:GetAlpha(),
-                        wasShown = barFrame:IsShown(),
-                        mouseEnabled = barFrame.IsMouseEnabled and barFrame:IsMouseEnabled() or nil,
-                    }
-                end
-
-                barFrame:SetAlpha(0)
-
-                if barFrame.EnableMouse then
-                    barFrame:EnableMouse(false)
-                end
-
-                barFrame:Hide()
+                HideFrame(barFrame)
             end
         end
     end
