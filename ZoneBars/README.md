@@ -13,7 +13,7 @@ Edit or delete existing rules.
 Automatically loads dungeons and raids from the in-game Encounter Journal.
 Detects unknown dungeons/raids you enter and saves them under Unknown.
 Filters pseudo Encounter Journal entries that are not real zones.
-Supports Blizzard default action bars, Bartender4, Dominos, and ElvUI bar frame names. Write a comment if you want further support for other addon bars.
+Supports Blizzard default action bars, Bartender4, Dominos, ElvUI, and EllesmereUI bar frame names. Write a comment if you want further support for other addon bars.
 Install
 
 Copy the ZoneBars folder into:
